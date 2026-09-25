@@ -12,7 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 
 msgid "SFP Diagnostics"
-msgstr "SFP 光模块诊断"
+msgstr "光模块诊断"
 
 msgid "Alarm"
 msgstr "告警"
