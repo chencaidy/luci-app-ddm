@@ -1,0 +1,120 @@
+#!/bin/sh
+# 模拟 ethtool，用于 luci-app-ddm 的端到端测试（把它放进 PATH 里当 ethtool 用）
+#
+# ddm 只使用一种取数方式：
+#   ethtool -m <iface> raw on offset 0xN length 128
+# `raw on` 时 stdout 必须是该页 128 字节的 EEPROM 原始二进制。
+#
+#   sfp0  正常 SFF-8472 模块（数据来自 data/map.bin 的 A0h/A2h 页）
+#   sfp1  温度偏高（88 °C）、收光功率等于低告警门限（warning / alarm）
+#   sfp2  非 SFF-8472 模块（Identifier = 0x0d QSFP+），应提示协议不支持
+#   sfp3  驱动忽略 offset，无论请求哪一页都只返回 A0h
+#         （用于验证不会把 A0h 当成 A2h 用）
+#   sfp4  完全读不到 EEPROM（驱动未实现 get_module_eeprom）
+#   sfp5  `raw on` 却返回 hexdump 文本（旧式输出），不应被解析
+
+IFACE="$2"
+
+# 定位数据文件：直接执行时 $0 是路径，通过 PATH 调用时 $0 只是 "ethtool"
+DIR=$(dirname "$0")
+
+if [ ! -f "$DIR/data/map.bin" ]; then
+	DIR=$(dirname "$(command -v ethtool)")
+fi
+
+MAP="$DIR/data/map.bin"
+
+# 读取 map.bin 里的 A0h 页（SFF-8472 扁平映射 0x000 起 128 字节）
+a0_page() {
+	dd if="$MAP" bs=1 skip=0 count=128 2>/dev/null
+}
+
+# 读取 map.bin 里的 A2h 页（扁平映射 0x100 起 128 字节）
+a2_page() {
+	dd if="$MAP" bs=1 skip=256 count=128 2>/dev/null
+}
+
+# A2h 页，但实时值改成 sfp1 的：88 °C / 收光 0.01 mW（= 低告警门限）
+a2_page_hot() {
+	# 0x00-0x5f 阈值区原样
+	dd if="$MAP" bs=1 skip=256 count=96 2>/dev/null
+	# 0x60-0x61 温度 = 88.00 °C
+	printf '\130\000'
+	# 0x62-0x67 电压 / 偏置 / 发功率原样
+	dd if="$MAP" bs=1 skip=354 count=6 2>/dev/null
+	# 0x68-0x69 收光 = 0.0100 mW（= 低告警门限）
+	printf '\000\144'
+	# 0x6a-0x7f 其余原样
+	dd if="$MAP" bs=1 skip=362 count=22 2>/dev/null
+}
+
+err() {
+	echo "$IFACE: $*" >&2
+	exit 1
+}
+
+# 只接受 ddm 使用的取数命令，其它写法一律报错
+is_read_cmd() {
+	case "$*" in
+		*"raw on offset 0x0 length 128"*|*"raw on offset 0x100 length 128"*)
+			return 0
+			;;
+	esac
+
+	return 1
+}
+
+case "$IFACE" in
+	sfp0)
+		is_read_cmd "$@" || err 'Cannot get module EEPROM information: Operation not supported'
+
+		case "$*" in
+			*"offset 0x100"*) a2_page ;;
+			*) a0_page ;;
+		esac
+		;;
+
+	sfp1)
+		is_read_cmd "$@" || err 'Cannot get module EEPROM information: Operation not supported'
+
+		case "$*" in
+			*"offset 0x100"*) a2_page_hot ;;
+			*) a0_page ;;
+		esac
+		;;
+
+	sfp2)
+		# 非 SFF-8472：Identifier = 0x0d（QSFP+）
+		case "$*" in
+			*"raw on offset 0x0 length 128"*)
+				printf '\015'
+				dd if="$MAP" bs=1 skip=1 count=127 2>/dev/null
+				;;
+			*)
+				err 'Cannot get module EEPROM information: Operation not supported'
+				;;
+		esac
+		;;
+
+	sfp3)
+		# 驱动忽略 offset，无论请求哪一页都只返回 A0h
+		is_read_cmd "$@" || err 'Cannot get module EEPROM information: Operation not supported'
+		a0_page
+		;;
+
+	sfp4)
+		err 'Cannot get module EEPROM information: Operation not supported'
+		;;
+
+	sfp5)
+		# 旧式输出：即使请求 raw on 也返回 hexdump 文本，ddm 不应解析
+		printf 'Offset\t\tValues\n'
+		printf '------\t\t------\n'
+		printf '0x0000:\t\t03 04 07 00 00 00 00 00 00 00 00 03 67 00 00 00\n'
+		printf '0x0010:\t\t00 00 00 00 46 53 20 20 20 20 20 20 20 20 20 20\n'
+		;;
+
+	*)
+		err 'Cannot get module EEPROM information: Operation not supported'
+		;;
+esac

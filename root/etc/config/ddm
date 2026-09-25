@@ -1,0 +1,7 @@
+config ddm 'main'
+	# 启用后台 DDM 采集/告警服务（默认关闭，按需开启）
+	option enabled '0'
+	# 采集周期（秒）
+	option interval '60'
+	# 1 = 只在告警状态发生变化时写一条 syslog，避免刷屏
+	option log_changes_only '1'

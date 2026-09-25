@@ -1,0 +1,116 @@
+#!/usr/bin/ucode
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * rpcd / ubus backend for luci-app-ddm
+ *
+ * 暴露的 ubus 对象: ddm
+ *    ddm status      - 全部 SFP 接口的完整 DDM 数据
+ *    ddm list        - 仅接口名列表
+ *    ddm info        - {"interface": "eth0"} 单个接口
+ *
+ * 说明：rpcd 加载本文件时使用的 ucode 虚拟机并没有把
+ * /usr/libexec/ddm 加入模块搜索路径（ucode 的 require() 只能按
+ * 固定的搜索路径模板解析模块名），因此这里不 require 核心模块，
+ * 而是复用 /usr/bin/ddm 命令行工具，保证解析逻辑只有一份实现。
+ */
+
+'use strict';
+
+const fs = require('fs');
+
+const DDM = '/usr/bin/ddm';
+
+/* 执行 /usr/bin/ddm 并返回原始 stdout */
+function run_cmd(args) {
+	let cmd = DDM;
+	let p = null;
+	let out = '';
+
+	for (let a in args)
+		cmd += ' ' + a;
+
+	try {
+		p = fs.popen(cmd + ' 2>/dev/null', 'r');
+	} catch (e) {
+		return '';
+	}
+
+	if (!p)
+		return '';
+
+	try {
+		out = p.read('all');
+	} catch (e) {
+		out = '';
+	}
+
+	try {
+		p.close();
+	} catch (e) { }
+
+	return (type(out) == 'string') ? out : '';
+}
+
+/* 执行 /usr/bin/ddm 并解析其 JSON 输出，失败返回 null */
+function run_json(args) {
+	let out = run_cmd(args);
+
+	if (length(trim(out)) == 0)
+		return null;
+
+	let r = null;
+
+	try {
+		r = json(out);
+	} catch (e) {
+		r = null;
+	}
+
+	return r;
+}
+
+function valid_iface(name) {
+	return type(name) == 'string' && match(name, /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,31}$/) != null;
+}
+
+return {
+	ddm: {
+		status: {
+			call: function() {
+				let r = run_json([ 'status' ]);
+
+				return (r != null) ? r : { error: 'failed to query DDM data' };
+			}
+		},
+
+		list: {
+			call: function() {
+				let names = [];
+
+				for (let line in split(run_cmd([ 'list' ]), '\n')) {
+					let n = trim(line);
+
+					if (length(n) > 0)
+						push(names, n);
+				}
+
+				return { interfaces: names };
+			}
+		},
+
+		info: {
+			args: { interface: '' },
+			call: function(req) {
+				let name = req.args.interface;
+
+				if (!valid_iface(name))
+					return { error: 'invalid interface name' };
+
+				let r = run_json([ 'info', name ]);
+
+				return (r != null) ? r : { error: 'no DDM data available for ' + name };
+			}
+		}
+	}
+};

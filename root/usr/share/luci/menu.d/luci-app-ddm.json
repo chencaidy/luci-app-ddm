@@ -1,0 +1,13 @@
+{
+	"admin/network/ddm": {
+		"title": "SFP Diagnostics",
+		"order": 60,
+		"action": {
+			"type": "view",
+			"path": "ddm/status"
+		},
+		"depends": {
+			"acl": [ "luci-app-ddm" ]
+		}
+	}
+}

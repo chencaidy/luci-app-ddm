@@ -1,0 +1,125 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-ddm\n"
+"Report-Msgid-Bugs-To: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "SFP Diagnostics"
+msgstr ""
+
+msgid "Alarm"
+msgstr ""
+
+msgid "Warning"
+msgstr ""
+
+msgid "Normal"
+msgstr ""
+
+msgid "N/A"
+msgstr ""
+
+msgid "Temperature"
+msgstr ""
+
+msgid "Supply voltage"
+msgstr ""
+
+msgid "TX bias current"
+msgstr ""
+
+msgid "TX optical power"
+msgstr ""
+
+msgid "RX optical power"
+msgstr ""
+
+msgid "Lower alarm"
+msgstr ""
+
+msgid "Lower warning"
+msgstr ""
+
+msgid "Upper warning"
+msgstr ""
+
+msgid "Upper alarm"
+msgstr ""
+
+msgid "This transceiver does not report digital diagnostic data."
+msgstr ""
+
+msgid "Parameter"
+msgstr ""
+
+msgid "Current value"
+msgstr ""
+
+msgid "Alarm limits"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Status"
+msgstr ""
+
+msgid "Vendor"
+msgstr ""
+
+msgid "Part number"
+msgstr ""
+
+msgid "Serial number"
+msgstr ""
+
+msgid "Revision"
+msgstr ""
+
+msgid "Date code"
+msgstr ""
+
+msgid "Connector"
+msgstr ""
+
+msgid "Encoding"
+msgstr ""
+
+msgid "Bit rate"
+msgstr ""
+
+msgid "Wavelength"
+msgstr ""
+
+msgid "Vendor OUI"
+msgstr ""
+
+msgid "EEPROM (A2h)"
+msgstr ""
+
+msgid "unavailable"
+msgstr ""
+
+msgid "Unsupported transceiver type: %s (%s). Only SFF-8472 (SFP/SFP+/SFP28) modules are supported."
+msgstr ""
+
+msgid "loading..."
+msgstr ""
+
+msgid "The ethtool utility was not found. Transceiver data cannot be read."
+msgstr ""
+
+msgid "No SFP transceiver with digital diagnostic monitoring was detected."
+msgstr ""
+
+msgid "Updated at %s"
+msgstr ""
+
+msgid "Refresh"
+msgstr ""
+
+msgid "auto refresh every %d s"
+msgstr ""

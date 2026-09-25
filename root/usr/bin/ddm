@@ -1,0 +1,12 @@
+#!/bin/sh
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# ddm - SFP DDM 命令行工具入口
+#
+# 说明：ucode 的 require() 只按“模块搜索路径模板”解析模块名，
+# 不支持绝对路径 / 相对路径（如 require('/path/mod.uc'）会失败）。
+# 因此这里用 -L 把核心模块所在目录加入搜索路径，
+# 再执行真正的 CLI 脚本，使其可以 require('ddm')。
+
+exec /usr/bin/ucode -L /usr/libexec/ddm /usr/libexec/ddm/cli.uc "$@"

@@ -1,0 +1,14 @@
+{
+	"luci-app-ddm": {
+		"description": "Grant access to SFP DDM diagnostics",
+		"read": {
+			"ubus": {
+				"ddm": [ "status", "list", "info" ]
+			},
+			"uci": [ "ddm" ]
+		},
+		"write": {
+			"uci": [ "ddm" ]
+		}
+	}
+}
