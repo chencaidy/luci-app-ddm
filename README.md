@@ -56,13 +56,13 @@ ethtool -m <if> raw on offset 0xN length 128
 ### 排查取不到数据
 
 ```sh
+ddm raw eth0 a0    # 看实际取到的 A0h 字节（第一字节即 SFF-8024 Identifier）
 ddm raw eth0 a2    # 看实际取到的 A2h 字节
 ddm info eth0      # 看解析后的 JSON
-ddm probe eth0     # 跑 A0h / A2h 两条命令并报告结果
 ```
 
-`ddm probe` 会打印每条命令的 stdout 字节数、是否被识别成 128 字节的 EEPROM 原始二进制、A0h 的 Identifier（SFF-8024）与是否支持、失败时的 stderr，以及最终 A0/A2 两页各取到多少字节。
-开头的 `ddm module: ...` 用于确认设备上的 `ddm.uc` 是不是最新版本。
+若 `ddm raw` 报 `no EEPROM data`，可手工执行
+`ethtool -m <if> raw on offset 0x0 length 128` 确认网卡驱动是否实现了 `get_module_eeprom` 回调。
 
 ## 依赖
 
@@ -102,9 +102,8 @@ ddm list                # 仅列出检测到的 SFP 接口名
 ddm info eth0           # 单个接口的 JSON
 ddm check               # 检查告警，越限时退出码为 1（可配合 cron/monitor）
 ddm check --quiet       # 只返回退出码，不输出
-ddm raw eth0 a0         # 打印 A0h 页 EEPROM 原始 hexdump（调试）
+ddm raw eth0 a0         # 打印 A0h 页（SID）原始 hexdump
 ddm raw eth0 a2         # 打印 A2h 页（DDM）原始 hexdump
-ddm probe eth0          # 跑取数命令（raw on offset X length Y），看实际收集到了什么（调试）
 ```
 
 示例：
@@ -205,8 +204,7 @@ luci-app-ddm/
 
 > **关于 `-L` 参数**：ucode 的 `require()` 只会按固定的“模块搜索路径模板”
 > 解析模块名，不支持 `require('/abs/path.uc')` 这类写法。因此 `/usr/bin/ddm`
-> 实际执行的是
-> `ucode -L /usr/libexec/ddm /usr/libexec/ddm/cli.uc "$@"`，
+> 实际执行的是 `ucode -L /usr/libexec/ddm /usr/libexec/ddm/cli.uc "$@"`，
 > 而 rpcd 插件则通过调用 `/usr/bin/ddm` 复用同一份解析实现。
 
 ## ubus 接口

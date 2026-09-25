@@ -43,5 +43,4 @@ ucode -L ./root/usr/libexec/ddm tests/e2e.uc
 ```sh
 ddm text
 ddm raw eth0 a2      # 查看 A2h 页原始字节
-ddm probe eth0       # 跑取数命令，定位取不到数据的原因
 ```

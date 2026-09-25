@@ -15,7 +15,6 @@
  *   ddm info <iface>             输出单个接口的 JSON
  *   ddm check [--quiet]          检查告警/警告，有问题时返回码为 1
  *   ddm raw <iface> [a0|a2]      打印 EEPROM 原始 hexdump（调试用）
- *   ddm probe <iface>            跑取数命令并展示实际拿到的字节（调试用）
  *
  * 取数只用 `ethtool -m <iface> raw on offset 0xN length 128`，
  * 且只解析 SFF-8472（SFP/SFP+/SFP28）；其他类型提示协议不支持。
@@ -41,12 +40,6 @@ const LABELS = {
 	rx_power: 'RX optical power'
 };
 
-/*
- * ddm 只使用一种取数方式：ethtool -m <iface> raw on offset 0xN length 128
- * probe 对 A0h（0x000）与 A2h（0x100）各跑一次，展示实际拿到的字节。
- */
-const PROBE_PAGES = [ 0xa0, 0xa2 ];
-
 function usage() {
 	printf('Usage: ddm <command> [options]\n\n');
 	printf('Commands:\n');
@@ -56,7 +49,6 @@ function usage() {
 	printf('  info <iface>            Show DDM data of a single interface as JSON\n');
 	printf('  check [--quiet]         Exit 1 when a metric is in warning/alarm state\n');
 	printf('  raw <iface> [a0|a2]     Dump raw EEPROM page (debug)\n');
-	printf('  probe <iface>           Run the EEPROM read command and show the bytes (debug)\n');
 	printf('\n');
 	printf('Only SFF-8472 (SFP/SFP+/SFP28) modules are supported; other types\n');
 	printf('are reported as unsupported (identified per SFF-8024).\n');
@@ -106,88 +98,6 @@ function fmt_val(v, unit) {
 
 function status_badge(s) {
 	return (s == 'alarm') ? '[ALARM]' : (s == 'warning') ? '[WARN ]' : (s == 'ok') ? '[ ok  ]' : '[ n/a ]';
-}
-
-function hex_preview(b, off, n) {
-	let s = '';
-
-	for (let i = off; i < off + n && i < length(b); i++)
-		s += sprintf('%s%02x', (i > off) ? ' ' : '', b[i]);
-
-	return s;
-}
-
-function first_line(s) {
-	for (let line in split(s, '\n')) {
-		let t = trim(line);
-
-		if (length(t) > 0)
-			return (length(t) > 72) ? (substr(t, 0, 72) + '...') : t;
-	}
-
-	return '';
-}
-
-/*
- * 诊断：对 A0h / A2h 各跑一次 `ethtool -m <iface> raw on offset X length 128`，
- * 展示 stdout 字节数、能否还原成 128 字节的 EEPROM 原始二进制、
- * A0h 的 Identifier（SFF-8024）以及 A2h 的实时值区。
- */
-function cmd_probe(iface) {
-	if (!ddm.is_iface_name(iface)) {
-		printf('error: invalid interface name\n');
-		return 2;
-	}
-
-	printf('ddm probe %s\n', iface);
-	printf('ethtool: %s\n', trim(ddm.run('ethtool --version')));
-	printf('ddm module: read_page_raw=%s, parse_raw_page=%s, protocol_supported=%s (为 no 说明设备上的 ddm.uc 还没更新)\n',
-		(type(ddm.read_page_raw) == 'function') ? 'yes' : 'NO',
-		(type(ddm.parse_raw_page) == 'function') ? 'yes' : 'NO',
-		(type(ddm.protocol_supported) == 'function') ? 'yes' : 'NO');
-
-	for (let page in PROBE_PAGES) {
-		let off = (page == 0xa0) ? 0 : 0x100;
-		let cmd = 'ethtool -m ' + iface + ' raw on offset ' + sprintf('0x%x', off) + ' length 128';
-		let out = ddm.run(cmd);
-		let b = ddm.parse_raw_page(out, 128);
-
-		printf('\n$ %s\n', cmd);
-		printf('  stdout %d bytes => %s\n', length(out),
-			(b == null) ? '不是 128 字节的 EEPROM 原始二进制'
-				: sprintf('原始二进制, %d 字节', length(b)));
-
-		if (b == null) {
-			/* 拿不到数据时把 stderr 也取出来，便于定位失败原因 */
-			let err = trim(ddm.run_redir(cmd, ' 2>&1 1>/dev/null'));
-
-			if (length(err) > 0)
-				printf('  stderr: %s\n', first_line(err));
-		} else if (page == 0xa0) {
-			let id = b[0];
-			let name = ddm.IDENTIFIERS[sprintf('0x%02x', id)];
-
-			printf('  头 8 字节: %s\n', hex_preview(b, 0, 8));
-			printf('  identifier: 0x%02x (%s) %s\n', id,
-				(name != null) ? name : 'unknown',
-				ddm.protocol_supported(id) ? '' : '=> 协议不支持，仅支持 SFF-8472');
-		} else {
-			printf('  0x60..0x69: %s\n', hex_preview(b, 96, 10));
-		}
-	}
-
-	let a0 = ddm.read_page_raw(iface, 0xa0);
-	let a2 = ddm.read_page_raw(iface, 0xa2);
-
-	printf('\nread_page(0xa0) -> %d bytes\n', length(a0.bytes));
-	printf('read_page(0xa2) -> %d bytes\n', length(a2.bytes));
-
-	if (length(a0.bytes) == 0 && length(a2.bytes) == 0)
-		printf('\nhint: 取不到 EEPROM 数据，可手工执行\n' +
-			'      ethtool -m %s raw on offset 0x0 length 128\n' +
-			'      确认网卡驱动是否实现了 get_module_eeprom 回调。\n', iface);
-
-	return 0;
 }
 
 function print_text(res) {
@@ -301,7 +211,7 @@ if (cmd == 'raw') {
 	let b = ddm.read_page(plain[1], page);
 
 	if (length(b) == 0) {
-		printf('error: no EEPROM data for %s (try: ddm probe %s)\n', plain[1], plain[1]);
+		printf('error: no EEPROM data for %s (try: ddm raw %s a0)\n', plain[1], plain[1]);
 		exit(3);
 	}
 
@@ -321,15 +231,6 @@ if (cmd == 'raw') {
 
 if (cmd == 'check') {
 	exit(cmd_check(opt_present('--quiet') || opt_present('-q')));
-}
-
-if (cmd == 'probe') {
-	if (length(plain) < 2) {
-		printf('error: probe requires an interface name\n');
-		exit(2);
-	}
-
-	exit(cmd_probe(plain[1]));
 }
 
 /* status / text / json */
