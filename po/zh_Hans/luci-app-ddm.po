@@ -14,6 +14,9 @@ msgstr ""
 msgid "SFP Diagnostics"
 msgstr "光模块诊断"
 
+msgid "Shows the digital diagnostic monitoring (DDM) data of the SFP/SFP+ transceivers installed in this device, as defined by SFF-8472. Each interface reports its identity, real-time measurements and alarm thresholds."
+msgstr "显示本机已安装 SFP/SFP+ 光模块的数字诊断监控（DDM）数据（SFF-8472）。每个接口列出模块信息、实时测量值以及告警门限。"
+
 msgid "Alarm"
 msgstr "告警"
 

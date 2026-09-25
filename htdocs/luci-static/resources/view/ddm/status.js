@@ -246,6 +246,7 @@ var CSS = [
 	'@media (prefers-color-scheme:dark){.ddm-root{--ddm-card-bg:#1c1c1c;--ddm-border:#333;--ddm-fg:#e0e0e0;--ddm-sub:#9e9e9e;--ddm-track:#333;}}',
 	'html[data-darkmode="true"] .ddm-root{--ddm-card-bg:#1c1c1c;--ddm-border:#333;--ddm-fg:#e0e0e0;--ddm-sub:#9e9e9e;--ddm-track:#333;}',
 	'.ddm-root{color:var(--ddm-fg);}',
+	'.ddm-header{margin-bottom:16px;}',
 	'.ddm-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}',
 	'.ddm-stamp{color:var(--ddm-sub);font-size:90%;}',
 	'.ddm-msg{padding:12px 16px;border-radius:8px;background:#fff8e1;border:1px solid #ffe082;color:#795548;margin-bottom:16px;}',
@@ -337,6 +338,12 @@ return view.extend({
 		}, POLL_INTERVAL);
 
 		return E('div', { 'class': 'ddm-root' }, [
+			E('div', { 'class': 'ddm-header' }, [
+				E('h2', [ _('SFP Diagnostics') ]),
+				E('p', [
+					_('Shows the digital diagnostic monitoring (DDM) data of the SFP/SFP+ transceivers installed in this device, as defined by SFF-8472. Each interface reports its identity, real-time measurements and alarm thresholds.')
+				])
+			]),
 			E('div', { 'class': 'ddm-toolbar' }, [
 				E('button', {
 					'class': 'btn cbi-button cbi-button-action',

@@ -10,6 +10,9 @@ msgstr ""
 msgid "SFP Diagnostics"
 msgstr ""
 
+msgid "Shows the digital diagnostic monitoring (DDM) data of the SFP/SFP+ transceivers installed in this device, as defined by SFF-8472. Each interface reports its identity, real-time measurements and alarm thresholds."
+msgstr ""
+
 msgid "Alarm"
 msgstr ""
 
