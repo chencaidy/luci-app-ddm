@@ -157,7 +157,8 @@ function metricsTable(itf) {
 				[ _('This transceiver does not report digital diagnostic data.') ])
 		]));
 
-	return E('table', { 'class': 'ddm-table' }, [
+	return E('div', { 'class': 'ddm-table-wrap' }, [
+		E('table', { 'class': 'ddm-table' }, [
 		E('thead', {}, [
 			E('tr', {}, [
 				E('th', {}, [ _('Parameter') ]),
@@ -168,6 +169,7 @@ function metricsTable(itf) {
 			])
 		]),
 		E('tbody', {}, rows)
+		])
 	]);
 }
 
@@ -266,7 +268,8 @@ var CSS = [
 	'.ddm-meta-item{display:flex;justify-content:space-between;gap:8px;font-size:90%;}',
 	'.ddm-meta-label{color:var(--ddm-sub);}',
 	'.ddm-meta-value{font-family:monospace;text-align:right;word-break:break-all;}',
-	'.ddm-table{width:100%;border-collapse:collapse;font-size:92%;}',
+	'.ddm-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}',
+	'.ddm-table{width:100%;min-width:680px;border-collapse:collapse;font-size:92%;}',
 	'.ddm-table th{text-align:left;padding:8px 14px;color:var(--ddm-sub);font-weight:600;border-bottom:1px solid var(--ddm-border);white-space:nowrap;}',
 	'.ddm-table td{padding:8px 14px;border-bottom:1px solid var(--ddm-border);vertical-align:middle;}',
 	'.ddm-table tr:last-child td{border-bottom:none;}',
